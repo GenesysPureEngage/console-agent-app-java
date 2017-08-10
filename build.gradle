@@ -1,0 +1,31 @@
+group 'genesys'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+    compile 'com.genesys:authorization:1.0.0'
+    compile 'com.genesys:workspace:1.0.0'
+    compile 'org.cometd.java:cometd-api:1.1.5'
+    compile 'org.cometd.java:cometd-java-client:3.1.2'
+    compile 'org.cometd.java:bayeux-api:3.1.2'
+    compile 'org.eclipse.jetty:jetty-client:9.4.6.v20170531'
+    compile 'com.squareup.okhttp:okhttp:2.7.5'
+}
+
+jar {
+    manifest {
+        attributes(
+                'Main-Class': 'Main'
+        )
+    }
+
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
