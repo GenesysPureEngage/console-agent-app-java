@@ -39,7 +39,6 @@ public class WorkspaceApi {
     private String password;
     private boolean debugEnabled = true;
     private String workspaceUrl;
-    private String authUrl;
     private ApiClient authClient;
     private ApiClient workspaceClient;
     private HttpClient cometdHttpClient;
@@ -70,7 +69,6 @@ public class WorkspaceApi {
         this.baseUrl = baseUrl;
         this.username = username;
         this.password = password;
-        this.authUrl      = this.baseUrl + "/auth/v3";
         this.workspaceUrl = this.baseUrl + "/workspace/v3";
 
         this.calls = new HashMap();
@@ -89,7 +87,7 @@ public class WorkspaceApi {
         String authorization = "Basic " + new String(encoded);
 
         this.accessToken = this.authApi.retrieveToken(
-                "password", this.clientId, this.username, this.password, authorization);
+                "password", "webshop", authorization, null, this.clientId, this.username, this.password);
         debug("Access token is " + this.accessToken.getAccessToken());
     }
 
@@ -277,7 +275,7 @@ public class WorkspaceApi {
             this.voiceApi = new VoiceApi(this.workspaceClient);
 
             this.authClient = new ApiClient();
-            this.authClient.setBasePath(this.authUrl);
+            this.authClient.setBasePath(this.baseUrl);
             this.authClient.addDefaultHeader("x-api-key", this.apiKey);
 
             this.authApi = new AuthenticationApi(this.authClient);
