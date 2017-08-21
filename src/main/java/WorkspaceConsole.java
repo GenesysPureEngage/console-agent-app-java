@@ -1,3 +1,4 @@
+import com.genesys.internal.common.StringUtil;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.Scanner;
@@ -243,263 +244,292 @@ public class WorkspaceConsole {
         this.write("Sending make-call with destination [" + destination + "]...");
         this.api.makeCall(destination);
     }
+    
+    private boolean processCommand(String text) throws WorkspaceApiException, ExecutionException, InterruptedException {
+        boolean exit = false;
+        Command cmd = this.parseInput(text);
+        if (cmd == null) {
+            return false;
+        }
+
+        List<String> args = cmd.getArgs();
+        String id;
+        String destination;
+        CompleteParams params;
+
+        switch(cmd.getName()) {
+
+            case "acw":
+                this.api.setAgentNotReady("AfterCallWork", null);
+                break;
+
+            case "initialize":
+            case "init":
+            case "i":
+                this.init();
+                break;
+
+            case "debug":
+            case "d":
+                this.api.setDebugEnabled(!this.api.debugEnabled());
+                this.write("Debug enabled:" + this.api.debugEnabled());
+                break;
+
+            case "dn":
+                this.write("Dn: " + this.getDnSummary(this.api.getDn()));
+                break;
+
+            case "calls":
+                this.write("Calls:");
+                Collection<Call> calls = this.api.getCalls();
+                if (calls.size() > 0) {
+                    calls.forEach(c -> this.write(this.getCallSummary(c)));
+                    this.write("");
+                } else {
+                    this.write("<none>");
+                }
+                break;
+
+            case "activate-channels":
+            case "ac":
+                this.activateChannels(args);
+                break;
+
+            case "iac":
+                this.init();
+                this.activateChannels(args);
+                break;
+
+            case "not-ready":
+            case "nr":
+                this.write("Sending not-ready...");
+                this.api.setAgentNotReady();
+                break;
+
+            case "ready":
+            case "r":
+                this.write("Sending ready...");
+                this.api.setAgentReady();
+                break;
+
+            case "make-call":
+            case "mc":
+                this.makeCall(args);
+                break;
+
+            case "release":
+            case "rel":
+                id = this.getCallId(args);
+                if (id == null) {
+                    this.write("Usage: release <id>");
+                } else {
+                    this.write("Sending release for call [" + id + "]...");
+                    this.api.releaseCall(id);
+                }
+                break;
+
+            case "answer":
+            case "a":
+                id = this.getCallId(args);
+                if (id == null) {
+                    this.write("Usage: answer <id>");
+                } else {
+                    this.write("Sending answer for call [" + id + "]...");
+                    this.api.answerCall(id);
+                }
+                break;
+
+            case "hold":
+            case "h":
+                id = this.getCallId(args);
+                if (id == null) {
+                    this.write("Usage: hold <id>");
+                } else {
+                    this.write("Sending hold for call [" + id + "]...");
+                    this.api.holdCall(id);
+                }
+                break;
+
+            case "retrieve":
+            case "ret":
+                id = this.getCallId(args);
+                if (id == null) {
+                    this.write("Usage: receive <id>");
+                } else {
+                    this.write("Sending retrieve for call [" + id + "]...");
+                    this.api.retrieveCall(id);
+                }
+                break;
+
+            case "initiate-conference":
+            case "ic":
+                if (args.size() < 1) {
+                    this.write("Usage: initiate-conference <id> <destination>");
+                } else {
+                    // If there is only one argument take it as the destination.
+                    destination = args.get(args.size() - 1);
+                    id = this.getCallId(args.size() == 1 ? null : args);
+                    if (id == null) {
+                        this.write("Usage: initiate-conference <id> <destination>");
+                    } else {
+                        this.write("Sending initiate-conference for call [" + id
+                                + " and destination [" + destination + "]...");
+                        this.api.initiateConference(id, destination);
+                    }
+                }
+                break;
+
+            case "complete-conference":
+            case "cc":
+                params = this.getCallIdAndParent(args);
+                if (params == null) {
+                    this.write("Usage: complete-conference <id> <parentConnId>");
+                } else {
+                    this.write("Sending complete-conference for call ["
+                            + params.getConnId() + "] and parentConnId ["
+                            + params.getParentConnId() + "]...");
+                    this.api.completeConference(params.getConnId(), params.getParentConnId());
+                }
+                break;
+
+            case "initiate-transfer":
+            case "it":
+                if (args.size() < 1) {
+                    this.write("Usage: initiate-transfer <id> <destination>");
+                } else {
+                    // If there is only one argument take it as the destination.
+                    destination = args.get(args.size() - 1);
+                    id = this.getCallId(args.size() == 1 ? null : args);
+                    if (id == null) {
+                        this.write("Usage: initiate-transfer <id> <destination>");
+                    } else {
+                        this.write("Sending initiate-transfer for call [" + id
+                                + " and destination [" + destination + "]...");
+                        this.api.initiateTransfer(id, destination);
+                    }
+                }
+                break;
+
+            case "complete-transfer":
+            case "ct":
+                params = this.getCallIdAndParent(args);
+                if (params == null) {
+                    this.write("Usage: complete-transfer <id> <parentConnId>");
+                } else {
+                    this.write("Sending complete-transfer for call ["
+                            + params.getConnId() + "] and parentConnId ["
+                            + params.getParentConnId() + "]...");
+                    this.api.completeTransfer(params.getConnId(), params.getParentConnId());
+                }
+                break;
+
+            case "alternate":
+            case "alt":
+                if (args.size() < 2) {
+                    this.write("Usage: alternate <id> <heldConnId>");
+                } else {
+                    this.write("Sending alternate for call ["
+                            + args.get(0) + "] and heldConnId ["
+                            + args.get(1) + "]...");
+                    this.api.alternateCalls(args.get(0), args.get(1));
+                }
+                break;
+
+            case "target-search":
+            case "ts":
+                break;
+
+            case "destroy":
+            case "logout":
+                this.write("Cleaning up and logging out...");
+                this.api.destroy();
+                break;
+
+            case "user":
+            case "u":
+                if (this.user != null) {
+                    this.write("User details:\n" +
+                            "employeeId: " + this.user.getEmployeeId() + "\n" +
+                            "agentId: " + this.user.getAgentId() + "\n" +
+                            "defaultPlace: " + this.user.getDefaultPlace() + "\n");
+                }
+
+            case "config":
+            case "conf":
+                this.write("Configuration:\n"
+                    + "apiKey: " + this.options.getApiKey() + "\n"
+                    + "baseUrl: " + this.options.getBaseUrl() + "\n"
+                    + "clientId: " + this.options.getClientId() + "\n"
+                    + "clientSecret: " + this.options.getClientSecret() + "\n"
+                    + "username: " + this.options.getUsername() + "\n"
+                    + "password: " + this.options.getPassword() + "\n"
+                    + "debugEnabled: " + this.options.isDebugEnabled() + "\n"
+                    + "autoLogin: " + this.options.isAutoLogin() + "\n"
+                    + "defaultAgentId: " + this.options.getDefaultAgentId() + "\n"
+                    + "defaultDn: " + this.options.getDefaultDn() + "\n"
+                    + "defaultDestination: " + this.options.getDefaultDestination() + "\n"
+                    );
+                break;
+
+            case "clear":
+            case "cls":
+                // Low tech...
+                for (int i = 0; i < 80; ++i) this.write("");
+                break;
+
+            case "exit":
+            case "x":
+                this.write("Cleaning up and exiting...");
+                this.api.destroy();
+                exit = true;
+                break;
+
+            case "?":
+            case "help":
+                this.printHelp();
+                break;
+
+            default:
+                break;
+
+        }
+        
+        return exit;
+    }
 
     public void run() {
-        Scanner s = new Scanner(System.in);
-
         try {
 
             this.write("Workspace Api Console");
             this.write("");
             this.doAutoLogin();
-
+            
+            //non-interactive mode
+            List<String> commands = options.getCommands();
+            if(commands.size() > 0) {
+                for(String cmd: commands) {
+                    if(processCommand(cmd)) {
+                        break;
+                    }
+                }
+                return;
+            }
+            
+            //interactive
+            Scanner s = new Scanner(System.in);
             for (;;) {
                 this.prompt();
-                Command cmd = this.parseInput(s.nextLine());
-                if (cmd == null) {
-                    continue;
+                
+                try {
+                    String cmd = s.nextLine();
+                    if(processCommand(cmd)) {
+                        break;
+                    }
                 }
-
-                List<String> args = cmd.getArgs();
-                String id;
-                String destination;
-                CompleteParams params;
-
-                switch(cmd.getName()) {
-
-                    case "acw":
-                        this.api.setAgentNotReady("AfterCallWork", null);
-                        break;
-
-                    case "initialize":
-                    case "init":
-                    case "i":
-                        this.init();
-                        break;
-
-                    case "debug":
-                    case "d":
-                        this.api.setDebugEnabled(!this.api.debugEnabled());
-                        this.write("Debug enabled:" + this.api.debugEnabled());
-                        break;
-
-                    case "dn":
-                        this.write("Dn: " + this.getDnSummary(this.api.getDn()));
-                        break;
-
-                    case "calls":
-                        this.write("Calls:");
-                        Collection<Call> calls = this.api.getCalls();
-                        if (calls.size() > 0) {
-                            calls.forEach(c -> this.write(this.getCallSummary(c)));
-                            this.write("");
-                        } else {
-                            this.write("<none>");
-                        }
-                        break;
-
-                    case "activate-channels":
-                    case "ac":
-                        this.activateChannels(args);
-                        break;
-
-                    case "iac":
-                        this.init();
-                        this.activateChannels(args);
-                        break;
-
-                    case "not-ready":
-                    case "nr":
-                        this.write("Sending not-ready...");
-                        this.api.setAgentNotReady();
-                        break;
-
-                    case "ready":
-                    case "r":
-                        this.write("Sending ready...");
-                        this.api.setAgentReady();
-                        break;
-
-                    case "make-call":
-                    case "mc":
-                        this.makeCall(args);
-                        break;
-
-                    case "release":
-                    case "rel":
-                        id = this.getCallId(args);
-                        if (id == null) {
-                            this.write("Usage: release <id>");
-                        } else {
-                            this.write("Sending release for call [" + id + "]...");
-                            this.api.releaseCall(id);
-                        }
-                        break;
-
-                    case "answer":
-                    case "a":
-                        id = this.getCallId(args);
-                        if (id == null) {
-                            this.write("Usage: answer <id>");
-                        } else {
-                            this.write("Sending answer for call [" + id + "]...");
-                            this.api.answerCall(id);
-                        }
-                        break;
-
-                    case "hold":
-                    case "h":
-                        id = this.getCallId(args);
-                        if (id == null) {
-                            this.write("Usage: hold <id>");
-                        } else {
-                            this.write("Sending hold for call [" + id + "]...");
-                            this.api.holdCall(id);
-                        }
-                        break;
-
-                    case "retrieve":
-                    case "ret":
-                        id = this.getCallId(args);
-                        if (id == null) {
-                            this.write("Usage: receive <id>");
-                        } else {
-                            this.write("Sending retrieve for call [" + id + "]...");
-                            this.api.retrieveCall(id);
-                        }
-                        break;
-
-                    case "initiate-conference":
-                    case "ic":
-                        if (args.size() < 1) {
-                            this.write("Usage: initiate-conference <id> <destination>");
-                        } else {
-                            // If there is only one argument take it as the destination.
-                            destination = args.get(args.size() - 1);
-                            id = this.getCallId(args.size() == 1 ? null : args);
-                            if (id == null) {
-                                this.write("Usage: initiate-conference <id> <destination>");
-                            } else {
-                                this.write("Sending initiate-conference for call [" + id
-                                        + " and destination [" + destination + "]...");
-                                this.api.initiateConference(id, destination);
-                            }
-                        }
-                        break;
-
-                    case "complete-conference":
-                    case "cc":
-                        params = this.getCallIdAndParent(args);
-                        if (params == null) {
-                            this.write("Usage: complete-conference <id> <parentConnId>");
-                        } else {
-                            this.write("Sending complete-conference for call ["
-                                    + params.getConnId() + "] and parentConnId ["
-                                    + params.getParentConnId() + "]...");
-                            this.api.completeConference(params.getConnId(), params.getParentConnId());
-                        }
-                        break;
-
-                    case "initiate-transfer":
-                    case "it":
-                        if (args.size() < 1) {
-                            this.write("Usage: initiate-transfer <id> <destination>");
-                        } else {
-                            // If there is only one argument take it as the destination.
-                            destination = args.get(args.size() - 1);
-                            id = this.getCallId(args.size() == 1 ? null : args);
-                            if (id == null) {
-                                this.write("Usage: initiate-transfer <id> <destination>");
-                            } else {
-                                this.write("Sending initiate-transfer for call [" + id
-                                        + " and destination [" + destination + "]...");
-                                this.api.initiateTransfer(id, destination);
-                            }
-                        }
-                        break;
-
-                    case "complete-transfer":
-                    case "ct":
-                        params = this.getCallIdAndParent(args);
-                        if (params == null) {
-                            this.write("Usage: complete-transfer <id> <parentConnId>");
-                        } else {
-                            this.write("Sending complete-transfer for call ["
-                                    + params.getConnId() + "] and parentConnId ["
-                                    + params.getParentConnId() + "]...");
-                            this.api.completeTransfer(params.getConnId(), params.getParentConnId());
-                        }
-                        break;
-
-                    case "alternate":
-                    case "alt":
-                        if (args.size() < 2) {
-                            this.write("Usage: alternate <id> <heldConnId>");
-                        } else {
-                            this.write("Sending alternate for call ["
-                                    + args.get(0) + "] and heldConnId ["
-                                    + args.get(1) + "]...");
-                            this.api.alternateCalls(args.get(0), args.get(1));
-                        }
-                        break;
-
-                    case "target-search":
-                    case "ts":
-                        break;
-
-                    case "destroy":
-                    case "logout":
-                        this.write("Cleaning up and logging out...");
-                        this.api.destroy();
-                        break;
-
-                    case "user":
-                    case "u":
-                        if (this.user != null) {
-                            this.write("User details:\n" +
-                                    "employeeId: " + this.user.getEmployeeId() + "\n" +
-                                    "agentId: " + this.user.getAgentId() + "\n" +
-                                    "defaultPlace: " + this.user.getDefaultPlace() + "\n");
-                        }
-
-                    case "config":
-                    case "conf":
-                        this.write("Configuration:\n"
-                            + "apiKey: " + this.options.getApiKey() + "\n"
-                            + "baseUrl: " + this.options.getBaseUrl() + "\n"
-                            + "clientId: " + this.options.getClientId() + "\n"
-                            + "clientSecret: " + this.options.getClientSecret() + "\n"
-                            + "username: " + this.options.getUsername() + "\n"
-                            + "password: " + this.options.getPassword() + "\n"
-                            + "debugEnabled: " + this.options.isDebugEnabled() + "\n"
-                            + "autoLogin: " + this.options.isAutoLogin() + "\n"
-                            + "defaultAgentId: " + this.options.getDefaultAgentId() + "\n"
-                            + "defaultDn: " + this.options.getDefaultDn() + "\n"
-                            + "defaultDestination: " + this.options.getDefaultDestination() + "\n"
-                            );
-                        break;
-
-                    case "clear":
-                    case "cls":
-                        // Low tech...
-                        for (int i = 0; i < 80; ++i) this.write("");
-                        break;
-
-                    case "exit":
-                    case "x":
-                        this.write("Cleaning up and exiting...");
-                        this.api.destroy();
-                        return;
-
-                    case "?":
-                    case "help":
-                        this.printHelp();
-                        break;
-
-                    default:
-                        break;
-
+                catch(Exception e) {
+                    write(e.getMessage());
                 }
+                
             }
 
         } catch (Exception e) {
