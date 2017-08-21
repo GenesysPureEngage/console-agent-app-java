@@ -13,10 +13,12 @@ dependencies {
     compile 'args4j:args4j:2.33'
 }
 
+ext.mainClass = 'Main'
+
 jar {
     manifest {
         attributes(
-                'Main-Class': 'Main'
+                'Main-Class': mainClass
         )
     }
 

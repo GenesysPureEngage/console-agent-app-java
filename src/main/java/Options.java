@@ -40,6 +40,9 @@ public class Options {
 
     @Option(name="--autoLogin")
     private boolean autoLogin;
+    
+    @Option(name="--command")
+    private List<String> commands = new ArrayList<>();
 
     @Argument
     private List<String> arguments = new ArrayList<String>();
@@ -56,6 +59,10 @@ public class Options {
             System.err.println();
             return null;
         }
+    }
+
+    public List<String> getCommands() {
+        return commands;
     }
 
     public String getApiKey() {
