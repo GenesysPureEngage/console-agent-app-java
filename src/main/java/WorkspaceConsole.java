@@ -113,17 +113,39 @@ public class WorkspaceConsole {
         this.write("calls");
         this.write("ready|r");
         this.write("not-ready|nr");
+        this.write("dnd-on");
+        this.write("dnd-off");
+        this.write("voice-login");
+        this.write("voice-logout");
+        this.write("set-forward <destination>");
+        this.write("cancel-forward");
         this.write("make-call|mc <destination>");
         this.write("answer|a <id>");
         this.write("hold|h <id>");
         this.write("retrieve|ret <id>");
         this.write("release|rel <id>");
-        this.write("initiate-confernence|ic <id> <destination>");
+        this.write("clear-call <id>");
+        this.write("redirect <id> <destination>");
+        this.write("initiate-conference|ic <id> <destination>");
         this.write("complete-conference|cc <id> <parentConnId>");
         this.write("initiate-transfer|it <id> <destination>");
         this.write("complete-transfer|ct <id> <parentConnId>");
-        this.write("target-search|ts <searchTerm> <limit>");
+        this.write("delete-from-conference|dfc <id> <dnToDrop>");
+        this.write("send-dtmf|dtmf <id> <digits>");
         this.write("alternate|alt <id> <heldConnId>");
+        this.write("merge <id> <otherConnId>");
+        this.write("reconnect <id> <heldConnId>");
+        this.write("single-step-transfer <id> <destination>");
+        this.write("single-step-conference <id> <destination>");
+        this.write("attach-user-data|aud <id> <key> <value>");
+        this.write("update-user-data|uud <id> <key> <value>");
+        this.write("delete-user-data-pair|dp <id> <key>");
+        this.write("start-recording <id>");
+        this.write("pause-recording <id>");
+        this.write("resume-recording <id>");
+        this.write("stop-recording <id>");
+        this.write("send-user-event <key> <value> <callUuid>");
+        this.write("target-search|ts <searchTerm> <limit>");
         this.write("clear|cls");
         this.write("config|conf");
         this.write("exit|x");
@@ -263,6 +285,8 @@ public class WorkspaceConsole {
                 List<String> args = cmd.getArgs();
                 String id;
                 String destination;
+                String key;
+                String value;
                 CompleteParams params;
 
                 switch(cmd.getName()) {
@@ -320,6 +344,40 @@ public class WorkspaceConsole {
                         this.api.setAgentReady();
                         break;
 
+                    case "dnd-on":
+                        this.write("Sending dnd-on...");
+                        this.api.dndOn();
+                        break;
+
+                    case "dnd-off":
+                        this.write("Sending dnd-off...");
+                        this.api.dndOff();
+                        break;
+
+                    case "set-forward":
+                        if (args.size() < 1) {
+                            this.write("Usage: set-forward <destination>");
+                        } else {
+                            this.write("Sending set-forward with destination [" + args.get(0) + "]...");
+                            this.api.setForward(args.get(0));
+                        }
+                        break;
+
+                    case "cancel-forward":
+                        this.write("Sending cancel-forward...");
+                        this.api.cancelForward();
+                        break;
+
+                    case "voice-login":
+                        this.write("Sending voice login...");
+                        this.api.voiceLogin();
+                        break;
+
+                    case "voice-logout":
+                        this.write("Sending voice logout...");
+                        this.api.voiceLogout();
+                        break;
+
                     case "make-call":
                     case "mc":
                         this.makeCall(args);
@@ -369,6 +427,33 @@ public class WorkspaceConsole {
                         }
                         break;
 
+                    case "clear-call":
+                        id = this.getCallId(args);
+                        if (id == null) {
+                            this.write("Usage: clear-call <id>");
+                        } else {
+                            this.write("Sending clear for call [" + id + "]...");
+                            this.api.clearCall(id);
+                        }
+                        break;
+
+                    case "redirect":
+                        if (args.size() < 1) {
+                            this.write("Usage: redirect <id> <destination>");
+                        } else {
+                            // If there is only one argument take it as the destination.
+                            destination = args.get(args.size() - 1);
+                            id = this.getCallId(args.size() == 1 ? null : args);
+                            if (id == null) {
+                                this.write("Usage: redirect <id> <destination>");
+                            } else {
+                                this.write("Sending redirect for call [" + id
+                                        + " and destination [" + destination + "]...");
+                                this.api.redirectCall(id, destination);
+                            }
+                        }
+                        break;
+
                     case "initiate-conference":
                     case "ic":
                         if (args.size() < 1) {
@@ -399,6 +484,25 @@ public class WorkspaceConsole {
                             this.api.completeConference(params.getConnId(), params.getParentConnId());
                         }
                         break;
+
+                    case "delete-from-conference":
+                    case "dfc":
+                        if (args.size() < 1) {
+                            this.write("Usage: delete-from-conference <id> <dnToDrop>");
+                        } else {
+                            // If there is only one argument take it as the dn to drop.
+                            String dnToDrop = args.get(args.size() - 1);
+                            id = this.getCallId(args.size() == 1 ? null : args);
+                            if (id == null) {
+                                this.write("Usage: delete-from-conference <id> <dnToDrop>");
+                            } else {
+                                this.write("Sending delete-from-conference for call [" + id
+                                        + " and dnToDrop [" + dnToDrop + "]...");
+                                this.api.deleteFromConference(id, dnToDrop);
+                            }
+                        }
+                        break;
+
 
                     case "initiate-transfer":
                     case "it":
@@ -431,6 +535,103 @@ public class WorkspaceConsole {
                         }
                         break;
 
+
+                    case "single-step-transfer":
+                    case "sst":
+                        if (args.size() < 1) {
+                            this.write("Usage: single-step-transfer <id> <destination>");
+                        } else {
+                            // If there is only one argument take it as the destination.
+                            destination = args.get(args.size() - 1);
+                            id = this.getCallId(args.size() == 1 ? null : args);
+                            if (id == null) {
+                                this.write("Usage: single-step-transfer <id> <destination>");
+                            } else {
+                                this.write("Sending single-step-transfer for call [" + id
+                                        + " and destination [" + destination + "]...");
+                                this.api.singleStepTransfer(id, destination);
+                            }
+                        }
+                        break;
+
+                    case "single-step-conference":
+                    case "ssc":
+                        if (args.size() < 1) {
+                            this.write("Usage: single-step-conference <id> <destination>");
+                        } else {
+                            // If there is only one argument take it as the destination.
+                            destination = args.get(args.size() - 1);
+                            id = this.getCallId(args.size() == 1 ? null : args);
+                            if (id == null) {
+                                this.write("Usage: single-step-conference <id> <destination>");
+                            } else {
+                                this.write("Sending single-step-conference for call [" + id
+                                        + " and destination [" + destination + "]...");
+                                this.api.singleStepConference(id, destination);
+                            }
+                        }
+                        break;
+
+                    case "attach-user-data":
+                    case "aud":
+                        if (args.size() < 2) {
+                            this.write("Usage: attach-user-data <id> <key> <value>");
+                        } else {
+                            // If there are only two arguments take them as the key/value.
+                            key = args.get(args.size() - 1);
+                            value = args.get(args.size() - 2);
+                            id = this.getCallId(args.size() == 2 ? null : args);
+                            if (id == null) {
+                                this.write("Usage: attach-user-data <id> <key> <value>");
+                            } else {
+                                this.write("Sending attach-user-data for call [" + id
+                                        + " and data [" + key + "=" + value + "]...");
+
+                                // TODO - Fix types for userData...
+                                this.api.attachUserData(id, null);
+                            }
+                        }
+                        break;
+
+                    case "update-user-data":
+                    case "uud":
+                        if (args.size() < 2) {
+                            this.write("Usage: update-user-data <id> <key> <value>");
+                        } else {
+                            // If there are only two arguments take them as the key/value.
+                            key = args.get(args.size() - 1);
+                            value = args.get(args.size() - 2);
+                            id = this.getCallId(args.size() == 2 ? null : args);
+                            if (id == null) {
+                                this.write("Usage: update-user-data <id> <key> <value>");
+                            } else {
+                                this.write("Sending update-user-data for call [" + id
+                                        + " and data [" + key + "=" + value + "]...");
+
+                                // TODO - Fix types for userData...
+                                this.api.updateUserData(id, null);
+                            }
+                        }
+                        break;
+
+                    case "delete-user-data-pair":
+                    case "dp":
+                        if (args.size() < 1) {
+                            this.write("Usage: delete-user-data-pair <id> <key>");
+                        } else {
+                            // If there is only one argument take it as the destination.
+                            key = args.get(args.size() - 1);
+                            id = this.getCallId(args.size() == 1 ? null : args);
+                            if (id == null) {
+                                this.write("Usage: delete-user-data-pair <id> <key>");
+                            } else {
+                                this.write("Sending delete-user-data-pair for call [" + id
+                                        + " and key [" + key + "]...");
+                                this.api.deleteUserDataPair(id, key);
+                            }
+                        }
+                        break;
+
                     case "alternate":
                     case "alt":
                         if (args.size() < 2) {
@@ -440,6 +641,103 @@ public class WorkspaceConsole {
                                     + args.get(0) + "] and heldConnId ["
                                     + args.get(1) + "]...");
                             this.api.alternateCalls(args.get(0), args.get(1));
+                        }
+                        break;
+
+                    case "merge":
+                        if (args.size() < 2) {
+                            this.write("Usage: merge <id> <otherConnId>");
+                        } else {
+                            this.write("Sending merge for call ["
+                                    + args.get(0) + "] and otherConnId ["
+                                    + args.get(1) + "]...");
+                            this.api.mergeCalls(args.get(0), args.get(1));
+                        }
+                        break;
+
+                    case "reconnect":
+                        if (args.size() < 2) {
+                            this.write("Usage: reconnect <id> <heldConnId>");
+                        } else {
+                            this.write("Sending reconnect for call ["
+                                    + args.get(0) + "] and heldConnId ["
+                                    + args.get(1) + "]...");
+                            this.api.reconnectCall(args.get(0), args.get(1));
+                        }
+                        break;
+
+                    case "send-dtmf":
+                    case "dtmf":
+                        if (args.size() < 1) {
+                            this.write("Usage: send-dtmf <id> <digits>");
+                        } else {
+                            // If there is only one argument take it as the dtmf digits.
+                            String digits = args.get(args.size() - 1);
+                            id = this.getCallId(args.size() == 1 ? null : args);
+                            if (id == null) {
+                                this.write("Usage: send-dtmf <id> <digits>");
+                            } else {
+                                this.write("Sending send-dtmf for call [" + id
+                                        + " and dtmfDigits [" + digits + "]...");
+                                this.api.sendDtmf(id, digits);
+                            }
+                        }
+                        break;
+
+                    case "start-recording":
+                        id = this.getCallId(args);
+                        if (id == null) {
+                            this.write("Usage: start-recording <id>");
+                        } else {
+                            this.write("Sending start-recording for call [" + id + "]...");
+                            this.api.startRecording(id);
+                        }
+                        break;
+
+                    case "pause-recording":
+                        id = this.getCallId(args);
+                        if (id == null) {
+                            this.write("Usage: pause-recording <id>");
+                        } else {
+                            this.write("Sending pause-recording for call [" + id + "]...");
+                            this.api.pauseRecording(id);
+                        }
+                        break;
+
+                    case "resume-recording":
+                        id = this.getCallId(args);
+                        if (id == null) {
+                            this.write("Usage: resume-recording <id>");
+                        } else {
+                            this.write("Sending resume-recortding for call [" + id + "]...");
+                            this.api.resumeRecording(id);
+                        }
+                        break;
+
+                    case "stop-recording":
+                        id = this.getCallId(args);
+                        if (id == null) {
+                            this.write("Usage: stop-recording <id>");
+                        } else {
+                            this.write("Sending stop-recording for call [" + id + "]...");
+                            this.api.stopRecording(id);
+                        }
+                        break;
+
+                    case "send-user-event":
+                        if (args.size() < 2) {
+                            this.write("Usage: send-user-event <key> <value> <callUuid>");
+                        } else {
+                            // If there are only two arguments take them as the key/value.
+                            key = args.get(0);
+                            value = args.get(1);
+                            String uuid = args.size() == 3 ? args.get(2) : null;
+
+                            this.write("Sending send-user-event with data [" + key + "=" + value
+                                    + "] and callUuid [" + uuid + "...");
+
+                            // TODO - Fix types for userData...
+                            this.api.sendUserEvent(null, uuid);
                         }
                         break;
 
