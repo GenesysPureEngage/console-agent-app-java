@@ -1,3 +1,5 @@
+package com.genesys.samples.console;
+
 import java.util.Base64;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
