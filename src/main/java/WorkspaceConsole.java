@@ -233,7 +233,7 @@ public class WorkspaceConsole {
         String baseUrl = this.options.getAuthBaseUrl() != null ?
                 this.options.getAuthBaseUrl() : this.options.getBaseUrl();
         ApiClient authClient = new ApiClient();
-        authClient.setBasePath(baseUrl + "/auth/v3'");
+        authClient.setBasePath(baseUrl + "/auth/v3");
         authClient.addDefaultHeader("x-api-key", this.options.getApiKey());
         OkHttpClient httpClient = authClient.getHttpClient();
         httpClient.setFollowRedirects(false);
@@ -247,7 +247,7 @@ public class WorkspaceConsole {
         String location = null;;
         try {
             ApiResponse<Void> response = authApi.authorizeWithHttpInfo(
-                    "code", this.options.getClientId(), "http://localhost", authorization);
+                    "code", this.options.getClientId(), "http://localhost", authorization, "*");
         } catch (ApiException e) {
             List<String> header = e.getResponseHeaders().get("Location");
             if (!header.isEmpty()) {
