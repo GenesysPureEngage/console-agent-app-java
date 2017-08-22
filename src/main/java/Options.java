@@ -8,7 +8,7 @@ import java.util.List;
 
 public class Options {
 
-    @Option(name="--apiKey", required = true)
+    @Option(name="--apiKey")
     private String apiKey;
 
     @Option(name="--username", required = true)
@@ -20,11 +20,11 @@ public class Options {
     @Option(name="--baseUrl", required = true)
     private String baseUrl;
 
+    @Option(name="--authBaseUrl")
+    private String authBaseUrl;
+
     @Option(name="--clientId", required = true)
     private String clientId;
-
-    @Option(name="--clientSecret", required = true)
-    private String clientSecret;
 
     @Option(name="--debugEnabled")
     private boolean debugEnabled;
@@ -52,8 +52,8 @@ public class Options {
 
             return options;
         } catch (CmdLineException e) {
-            parser.printUsage(System.err);
-            System.err.println();
+            parser.printUsage(System.out);
+            System.out.println(e.getMessage());
             return null;
         }
     }
@@ -66,12 +66,12 @@ public class Options {
         return this.baseUrl;
     }
 
-    public String getClientId() {
-        return this.clientId;
+    public String getAuthBaseUrl() {
+        return this.authBaseUrl;
     }
 
-    public String getClientSecret() {
-        return this.clientSecret;
+    public String getClientId() {
+        return this.clientId;
     }
 
     public String getUsername() {

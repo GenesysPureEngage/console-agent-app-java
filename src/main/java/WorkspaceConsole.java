@@ -1,9 +1,16 @@
+import java.util.Base64;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+
+import com.genesys.internal.authorization.api.AuthenticationApi;
+import com.genesys.internal.common.ApiClient;
+import com.genesys.internal.common.ApiException;
+import com.genesys.internal.common.ApiResponse;
+import com.squareup.okhttp.OkHttpClient;
 import com.genesys.workspace.WorkspaceApi;
 import com.genesys.workspace.common.WorkspaceApiException;
 import com.genesys.workspace.models.Call;
@@ -19,11 +26,7 @@ public class WorkspaceConsole {
         this.options = options;
         this.api = new WorkspaceApi(
                 options.getApiKey(),
-                options.getClientId(),
-                options.getClientSecret(),
                 options.getBaseUrl(),
-                options.getUsername(),
-                options.getPassword(),
                 options.isDebugEnabled());
 
         this.api.addCallEventListener(msg -> {
@@ -84,6 +87,10 @@ public class WorkspaceConsole {
 
     private void prompt() {
         System.out.print("cmd> ");
+    }
+
+    private void prompt(String msg) {
+        System.out.print(msg);
     }
 
     private Command parseInput(String input) {
@@ -221,9 +228,54 @@ public class WorkspaceConsole {
         return params;
     }
 
-    private void init() throws WorkspaceApiException, ExecutionException, InterruptedException {
+    private String getAuthCode() {
+        this.write("Getting auth code...");
+        String baseUrl = this.options.getAuthBaseUrl() != null ?
+                this.options.getAuthBaseUrl() : this.options.getBaseUrl();
+        ApiClient authClient = new ApiClient();
+        authClient.setBasePath(baseUrl);
+        authClient.addDefaultHeader("x-api-key", this.options.getApiKey());
+        OkHttpClient httpClient = authClient.getHttpClient();
+        httpClient.setFollowRedirects(false);
+        httpClient.setFollowSslRedirects(false);
+
+        byte[] bytes = (this.options.getUsername() + ":" + this.options.getPassword()).getBytes();
+        byte[] encoded = Base64.getEncoder().encode(bytes);
+        String authorization = "Basic " + new String(encoded);
+
+        AuthenticationApi authApi = new AuthenticationApi(authClient);
+        String location = null;;
+        try {
+            ApiResponse<Void> response = authApi.authorizeWithHttpInfo(
+                    "code", this.options.getClientId(), "http://localhost", authorization);
+        } catch (ApiException e) {
+            List<String> header = e.getResponseHeaders().get("Location");
+            if (!header.isEmpty()) {
+                location = header.stream().findFirst().get();
+            }
+        }
+
+        if (location == null) {
+            return null;
+        }
+
+        this.write("Found location: " + location);
+
+        int idx = location.indexOf("code=");
+        String code = location.substring(idx + 5);
+
+        return code;
+
+    }
+
+    private void init() throws WorkspaceConsoleException, WorkspaceApiException, ExecutionException, InterruptedException {
+
+        String code = this.getAuthCode();
+        if (code == null) {
+            throw new WorkspaceConsoleException("Failed to get auth code.");
+        }
         this.write("Initializing API...");
-        CompletableFuture<User> future = this.api.initialize();
+        CompletableFuture<User> future = this.api.initialize(code, "http://localhost");
         this.user = future.get();
         this.write("Initialization complete.");
     }
@@ -249,7 +301,7 @@ public class WorkspaceConsole {
                 this.init();
                 this.activateChannels(null);
             }
-        } catch (WorkspaceApiException|ExecutionException|InterruptedException e) {
+        } catch (WorkspaceConsoleException|WorkspaceApiException|ExecutionException|InterruptedException e) {
             this.write("autoLogin failed!" + e);
         }
     }
@@ -760,13 +812,11 @@ public class WorkspaceConsole {
                                     "defaultPlace: " + this.user.getDefaultPlace() + "\n");
                         }
 
-                    case "config":
-                    case "conf":
+                    case "console-config":
                         this.write("Configuration:\n"
                             + "apiKey: " + this.options.getApiKey() + "\n"
                             + "baseUrl: " + this.options.getBaseUrl() + "\n"
                             + "clientId: " + this.options.getClientId() + "\n"
-                            + "clientSecret: " + this.options.getClientSecret() + "\n"
                             + "username: " + this.options.getUsername() + "\n"
                             + "password: " + this.options.getPassword() + "\n"
                             + "debugEnabled: " + this.options.isDebugEnabled() + "\n"
