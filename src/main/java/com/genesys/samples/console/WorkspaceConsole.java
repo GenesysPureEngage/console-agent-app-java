@@ -249,7 +249,7 @@ public class WorkspaceConsole {
         String location = null;;
         try {
             ApiResponse<Void> response = authApi.authorizeWithHttpInfo(
-                    "code", this.options.getClientId(), "http://localhost", authorization, "*");
+                    "code", "http://localhost", this.options.getClientId(), authorization, "*");
         } catch (ApiException e) {
             List<String> header = e.getResponseHeaders().get("Location");
             if (!header.isEmpty()) {
