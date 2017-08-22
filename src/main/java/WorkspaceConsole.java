@@ -233,7 +233,7 @@ public class WorkspaceConsole {
         String baseUrl = this.options.getAuthBaseUrl() != null ?
                 this.options.getAuthBaseUrl() : this.options.getBaseUrl();
         ApiClient authClient = new ApiClient();
-        authClient.setBasePath(baseUrl);
+        authClient.setBasePath(baseUrl + "/auth/v3'");
         authClient.addDefaultHeader("x-api-key", this.options.getApiKey());
         OkHttpClient httpClient = authClient.getHttpClient();
         httpClient.setFollowRedirects(false);
