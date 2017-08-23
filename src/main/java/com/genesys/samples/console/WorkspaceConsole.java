@@ -12,12 +12,10 @@ import com.genesys.internal.authorization.api.AuthenticationApi;
 import com.genesys.internal.common.ApiClient;
 import com.genesys.internal.common.ApiException;
 import com.genesys.internal.common.ApiResponse;
+import com.genesys.workspace.models.*;
 import com.squareup.okhttp.OkHttpClient;
 import com.genesys.workspace.WorkspaceApi;
 import com.genesys.workspace.common.WorkspaceApiException;
-import com.genesys.workspace.models.Call;
-import com.genesys.workspace.models.Dn;
-import com.genesys.workspace.models.User;
 
 public class WorkspaceConsole {
     private Options options;
@@ -36,7 +34,7 @@ public class WorkspaceConsole {
                 this.write("Call [" + msg.getPreviousConnId() + "] id changed to ["
                         + msg.getCall().getId());
             } else {
-                this.write("CallStateChanged: " + this.getCallSummary(msg.getCall()));
+                this.write("CallStateChanged [" + msg.getNotificationType() + "]: " + this.getCallSummary(msg.getCall()));
             }
         });
         this.api.addDnEventListener(msg -> {
@@ -84,10 +82,14 @@ public class WorkspaceConsole {
     }
 
     private void write(String msg) {
+        String moveBack = "\u001b[50D";
+        System.out.print(moveBack);
         System.out.println(msg);
     }
 
     private void prompt() {
+        String moveBack = "\u001b[50D";
+        System.out.print(moveBack);
         System.out.print("cmd> ");
     }
 
@@ -184,14 +186,28 @@ public class WorkspaceConsole {
             }
 
             summary += " participants [" + participantSummary + "]";
+            summary += " userData " + call.getUserData();
         }
 
         return summary;
     }
 
     private String getDnSummary(Dn dn) {
-        return dn.getNumber() + " state [" + dn.getAgentState()
-                + "] workMode [" + dn.getWorkMode() + "]";
+        String msg = dn.getNumber() + " state [" + dn.getAgentState() + "]";
+
+        if (dn.getWorkMode() != AgentWorkMode.UNKNOWN) {
+            msg += " workMode [" + dn.getWorkMode() + "]";
+        }
+
+        if (dn.getForwardTo() != null) {
+            msg += " forwardTo [" + dn.getForwardTo() + "]";
+        }
+
+        if (dn.isDND()) {
+            msg += " dnd [on]";
+        }
+
+        return msg;
     }
 
     private String getCallId(List<String> args) {
@@ -293,7 +309,7 @@ public class WorkspaceConsole {
         String dn = hasArgs ? args.get(1) : this.options.getDefaultDn();
 
         this.write("Sending activate-channels with agentId [" + agentId + "] and dn " + dn + "]...");
-        this.api.activateChannels(agentId, dn);
+        this.api.activateChannels(agentId, dn, null, null);
     }
 
     private void doAutoLogin() {
@@ -502,7 +518,7 @@ public class WorkspaceConsole {
                                 this.write("Usage: redirect <id> <destination>");
                             } else {
                                 this.write("Sending redirect for call [" + id
-                                        + " and destination [" + destination + "]...");
+                                        + "] and destination [" + destination + "]...");
                                 this.api.redirectCall(id, destination);
                             }
                         }
@@ -520,7 +536,7 @@ public class WorkspaceConsole {
                                 this.write("Usage: initiate-conference <id> <destination>");
                             } else {
                                 this.write("Sending initiate-conference for call [" + id
-                                        + " and destination [" + destination + "]...");
+                                        + "] and destination [" + destination + "]...");
                                 this.api.initiateConference(id, destination);
                             }
                         }
@@ -570,7 +586,7 @@ public class WorkspaceConsole {
                                 this.write("Usage: initiate-transfer <id> <destination>");
                             } else {
                                 this.write("Sending initiate-transfer for call [" + id
-                                        + " and destination [" + destination + "]...");
+                                        + "] and destination [" + destination + "]...");
                                 this.api.initiateTransfer(id, destination);
                             }
                         }
@@ -602,7 +618,7 @@ public class WorkspaceConsole {
                                 this.write("Usage: single-step-transfer <id> <destination>");
                             } else {
                                 this.write("Sending single-step-transfer for call [" + id
-                                        + " and destination [" + destination + "]...");
+                                        + "] and destination [" + destination + "]...");
                                 this.api.singleStepTransfer(id, destination);
                             }
                         }
@@ -620,7 +636,7 @@ public class WorkspaceConsole {
                                 this.write("Usage: single-step-conference <id> <destination>");
                             } else {
                                 this.write("Sending single-step-conference for call [" + id
-                                        + " and destination [" + destination + "]...");
+                                        + "] and destination [" + destination + "]...");
                                 this.api.singleStepConference(id, destination);
                             }
                         }
@@ -628,43 +644,37 @@ public class WorkspaceConsole {
 
                     case "attach-user-data":
                     case "aud":
-                        if (args.size() < 2) {
+                        if (args.size() < 3) {
                             this.write("Usage: attach-user-data <id> <key> <value>");
                         } else {
-                            // If there are only two arguments take them as the key/value.
-                            key = args.get(args.size() - 1);
-                            value = args.get(args.size() - 2);
-                            id = this.getCallId(args.size() == 2 ? null : args);
-                            if (id == null) {
-                                this.write("Usage: attach-user-data <id> <key> <value>");
-                            } else {
-                                this.write("Sending attach-user-data for call [" + id
-                                        + " and data [" + key + "=" + value + "]...");
+                            id = args.get(0);
+                            key = args.get(1);
+                            value = args.get(2);
 
-                                // TODO - Fix types for userData...
-                                this.api.attachUserData(id, null);
-                            }
+                            this.write("Sending attach-user-data for call [" + id
+                                    + "] and data [" + key + "=" + value + "]...");
+
+                            KeyValueCollection userData = new KeyValueCollection();
+                            userData.addString(key, value);
+                            this.api.attachUserData(id, userData);
                         }
                         break;
 
                     case "update-user-data":
                     case "uud":
-                        if (args.size() < 2) {
+                        if (args.size() < 3) {
                             this.write("Usage: update-user-data <id> <key> <value>");
                         } else {
-                            // If there are only two arguments take them as the key/value.
-                            key = args.get(args.size() - 1);
-                            value = args.get(args.size() - 2);
-                            id = this.getCallId(args.size() == 2 ? null : args);
-                            if (id == null) {
-                                this.write("Usage: update-user-data <id> <key> <value>");
-                            } else {
-                                this.write("Sending update-user-data for call [" + id
-                                        + " and data [" + key + "=" + value + "]...");
+                            id = args.get(0);
+                            key = args.get(1);
+                            value = args.get(2);
 
-                                // TODO - Fix types for userData...
-                                this.api.updateUserData(id, null);
-                            }
+                            this.write("Sending update-user-data for call [" + id
+                                    + "] and data [" + key + "=" + value + "]...");
+
+                            KeyValueCollection userData = new KeyValueCollection();
+                            userData.addString(key, value);
+                            this.api.updateUserData(id, userData);
                         }
                         break;
 
@@ -733,7 +743,7 @@ public class WorkspaceConsole {
                             } else {
                                 this.write("Sending send-dtmf for call [" + id
                                         + " and dtmfDigits [" + digits + "]...");
-                                this.api.sendDtmf(id, digits);
+                                this.api.sendDTMF(id, digits);
                             }
                         }
                         break;
@@ -779,18 +789,19 @@ public class WorkspaceConsole {
                         break;
 
                     case "send-user-event":
-                        if (args.size() < 2) {
+                        if (args.size() < 3) {
                             this.write("Usage: send-user-event <key> <value> <callUuid>");
                         } else {
                             // If there are only two arguments take them as the key/value.
                             key = args.get(0);
                             value = args.get(1);
-                            String uuid = args.size() == 3 ? args.get(2) : null;
+                            String uuid = args.get(2);
 
                             this.write("Sending send-user-event with data [" + key + "=" + value
                                     + "] and callUuid [" + uuid + "...");
 
-                            // TODO - Fix types for userData...
+                            KeyValueCollection userData = new KeyValueCollection();
+                            userData.addString(key, value);
                             this.api.sendUserEvent(null, uuid);
                         }
                         break;
