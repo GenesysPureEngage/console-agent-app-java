@@ -13,6 +13,7 @@ import com.genesys.internal.common.ApiClient;
 import com.genesys.internal.common.ApiException;
 import com.genesys.internal.common.ApiResponse;
 import com.genesys.workspace.models.*;
+import com.genesys.workspace.models.cfg.*;
 import com.squareup.okhttp.OkHttpClient;
 import com.genesys.workspace.WorkspaceApi;
 import com.genesys.workspace.common.WorkspaceApiException;
@@ -120,6 +121,7 @@ public class WorkspaceConsole {
         this.write("destroy|logout|l");
         this.write("activate-channels|ac <agentId> <dn>");
         this.write("user|u");
+        this.write("configuration|c <type>");
         this.write("dn");
         this.write("calls");
         this.write("ready|r");
@@ -336,6 +338,109 @@ public class WorkspaceConsole {
         this.api.makeCall(destination);
     }
 
+    private String getBusinessAttributeSummary() {
+        String summary = "Business Attributes:\n";
+        Collection<BusinessAttribute> businessAttributes = this.api.getBusinessAttributes();
+        if (businessAttributes != null && !businessAttributes.isEmpty()) {
+            for (BusinessAttribute businessAttribute : businessAttributes) {
+                summary += businessAttribute + "\n";
+            }
+        } else {
+            summary += "<none>\n";
+        }
+
+        return summary;
+    }
+
+    private String getActionCodeSummary() {
+        String summary = "Action Codes:\n";
+        Collection<ActionCode> actionCodes = this.api.getActionCodes();
+        if (actionCodes != null && !actionCodes.isEmpty()) {
+            for (ActionCode actionCode : actionCodes) {
+                summary += actionCode + "\n";
+            }
+        } else {
+            summary += "<none>\n";
+        }
+
+        return summary;
+    }
+
+    private String getSettingsSummary() {
+        KeyValueCollection settings = this.api.getSettings();
+        return "Settings:\n" + settings == null ? "<none>" : settings.toString();
+    }
+
+    private String getTransactionsSummary() {
+        String summary = "Transactions:\n";
+
+        Collection<Transaction> txns = this.api.getTransactions();
+        if (txns != null && !txns.isEmpty()) {
+            for (Transaction txn : txns) {
+                summary += txn + "\n";
+            }
+        } else {
+            summary += "<none>\n";
+        }
+
+        return summary;
+    }
+
+    private String getAgentGroupsSummary() {
+        String summary = "Agent Groups:\n";
+/*
+        Collection<AgentGroup> agentGroups = this.api.getAgentGroups();
+        if (agentGroups != null && !agentGroups.isEmpty()) {
+            for (AgentGroup group : agentGroups) {
+                summary += "name [" + group.getName() + "] userProperties " + group.getUserProperties() + "]\n";
+            }
+        } else {
+            summary += "<none>\n";
+        }*/
+
+        return summary;
+    }
+
+    private void printConfiguration(List<String> args) {
+        String type = args.size() == 1 ? args.get(0) : "all";
+
+        String msg = "";
+        switch (type) {
+            case "action-codes":
+                msg += this.getActionCodeSummary();
+                break;
+
+            case "agent-groups":
+                msg += this.getAgentGroupsSummary();
+                break;
+
+            case "ba":
+                msg += this.getBusinessAttributeSummary();
+                break;
+
+            case "txn":
+                msg += this.getTransactionsSummary();
+                break;
+
+            case "settings":
+                msg += this.getSettingsSummary();
+                break;
+
+            case "all":
+                msg += this.getActionCodeSummary() + "\n";
+                msg += this.getAgentGroupsSummary() + "\n";
+                msg += this.getBusinessAttributeSummary() + "\n";
+                msg += this.getTransactionsSummary() + "\n";
+                msg += this.getSettingsSummary() + "\n";
+                break;
+
+            default:
+                msg = "Usage: configuration <type> where type is one of action-codes, agent-groups, ba, txn, settings";
+        }
+
+        this.write(msg);
+    }
+
     public void run() {
         Scanner s = new Scanner(System.in);
 
@@ -390,6 +495,11 @@ public class WorkspaceConsole {
                         } else {
                             this.write("<none>");
                         }
+                        break;
+
+                    case "configuration":
+                    case "c":
+                        this.printConfiguration(args);
                         break;
 
                     case "activate-channels":
@@ -822,7 +932,8 @@ public class WorkspaceConsole {
                             this.write("User details:\n" +
                                     "employeeId: " + this.user.getEmployeeId() + "\n" +
                                     "agentId: " + this.user.getAgentId() + "\n" +
-                                    "defaultPlace: " + this.user.getDefaultPlace() + "\n");
+                                    "defaultPlace: " + this.user.getDefaultPlace() + "\n" +
+                                    "userProperties: " + this.user.getUserProperties() + "\n");
                         }
 
                     case "console-config":
