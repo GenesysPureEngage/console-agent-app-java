@@ -32,7 +32,7 @@ public class WorkspaceConsole {
                 options.getBaseUrl(),
                 options.isDebugEnabled());
 
-        this.api.addCallEventListener(msg -> {
+        this.api.voice().addCallEventListener(msg -> {
             if (msg.getPreviousConnId() != null) {
                 this.write("Call [" + msg.getPreviousConnId() + "] id changed to ["
                         + msg.getCall().getId());
@@ -40,10 +40,10 @@ public class WorkspaceConsole {
                 this.write("CallStateChanged [" + msg.getNotificationType() + "]: " + this.getCallSummary(msg.getCall()));
             }
         });
-        this.api.addDnEventListener(msg -> {
+        this.api.voice().addDnEventListener(msg -> {
             this.write("DnStateChanged: " + this.getDnSummary(msg.getDn()));
         });
-        this.api.addErrorEventListener(msg -> {
+        this.api.voice().addErrorEventListener(msg -> {
             this.write("EventError: " + msg.getMessage() + " - code [" + msg.getCode() + "]");
         });
     }
@@ -221,7 +221,7 @@ public class WorkspaceConsole {
         }
 
         // Otherwise if there is only one call use that id.
-        Collection<Call> calls = this.api.getCalls();
+        Collection<Call> calls = this.api.voice().getCalls();
         if (calls.size() != 1) {
             return null;
         } else {
@@ -237,8 +237,8 @@ public class WorkspaceConsole {
         // If ids were not provided, see if there is only one
         // possibility.
         CompleteParams params = null;
-        if (this.api.getCalls().size() == 2) {
-            Call call = this.api.getCalls().stream()
+        if (this.api.voice().getCalls().size() == 2) {
+            Call call = this.api.voice().getCalls().stream()
                   .filter(c -> c.getParentConnId() != null)
                   .findFirst().get();
 
@@ -337,7 +337,7 @@ public class WorkspaceConsole {
 
         String destination = hasArgs ? args.get(0) : this.options.getDefaultDestination();
         this.write("Sending make-call with destination [" + destination + "]...");
-        this.api.makeCall(destination);
+        this.api.voice().makeCall(destination);
     }
 
     private String getBusinessAttributeSummary() {
@@ -469,7 +469,7 @@ public class WorkspaceConsole {
                 switch(cmd.getName()) {
 
                     case "acw":
-                        this.api.setAgentNotReady("AfterCallWork", null);
+                        this.api.voice().setAgentNotReady("AfterCallWork", null);
                         break;
 
                     case "initialize":
@@ -485,12 +485,12 @@ public class WorkspaceConsole {
                         break;
 
                     case "dn":
-                        this.write("Dn: " + this.getDnSummary(this.api.getDn()));
+                        this.write("Dn: " + this.getDnSummary(this.api.voice().getDn()));
                         break;
 
                     case "calls":
                         this.write("Calls:");
-                        Collection<Call> calls = this.api.getCalls();
+                        Collection<Call> calls = this.api.voice().getCalls();
                         if (calls.size() > 0) {
                             calls.forEach(c -> this.write(this.getCallSummary(c)));
                             this.write("");
@@ -517,23 +517,23 @@ public class WorkspaceConsole {
                     case "not-ready":
                     case "nr":
                         this.write("Sending not-ready...");
-                        this.api.setAgentNotReady();
+                        this.api.voice().setAgentNotReady();
                         break;
 
                     case "ready":
                     case "r":
                         this.write("Sending ready...");
-                        this.api.setAgentReady();
+                        this.api.voice().setAgentReady();
                         break;
 
                     case "dnd-on":
                         this.write("Sending dnd-on...");
-                        this.api.dndOn();
+                        this.api.voice().dndOn();
                         break;
 
                     case "dnd-off":
                         this.write("Sending dnd-off...");
-                        this.api.dndOff();
+                        this.api.voice().dndOff();
                         break;
 
                     case "set-forward":
@@ -541,23 +541,23 @@ public class WorkspaceConsole {
                             this.write("Usage: set-forward <destination>");
                         } else {
                             this.write("Sending set-forward with destination [" + args.get(0) + "]...");
-                            this.api.setForward(args.get(0));
+                            this.api.voice().setForward(args.get(0));
                         }
                         break;
 
                     case "cancel-forward":
                         this.write("Sending cancel-forward...");
-                        this.api.cancelForward();
+                        this.api.voice().cancelForward();
                         break;
 
                     case "voice-login":
                         this.write("Sending voice login...");
-                        this.api.voiceLogin();
+                        this.api.voice().login();
                         break;
 
                     case "voice-logout":
                         this.write("Sending voice logout...");
-                        this.api.voiceLogout();
+                        this.api.voice().logout();
                         break;
 
                     case "make-call":
@@ -572,7 +572,7 @@ public class WorkspaceConsole {
                             this.write("Usage: release <id>");
                         } else {
                             this.write("Sending release for call [" + id + "]...");
-                            this.api.releaseCall(id);
+                            this.api.voice().releaseCall(id);
                         }
                         break;
 
@@ -583,7 +583,7 @@ public class WorkspaceConsole {
                             this.write("Usage: answer <id>");
                         } else {
                             this.write("Sending answer for call [" + id + "]...");
-                            this.api.answerCall(id);
+                            this.api.voice().answerCall(id);
                         }
                         break;
 
@@ -594,7 +594,7 @@ public class WorkspaceConsole {
                             this.write("Usage: hold <id>");
                         } else {
                             this.write("Sending hold for call [" + id + "]...");
-                            this.api.holdCall(id);
+                            this.api.voice().holdCall(id);
                         }
                         break;
 
@@ -605,7 +605,7 @@ public class WorkspaceConsole {
                             this.write("Usage: receive <id>");
                         } else {
                             this.write("Sending retrieve for call [" + id + "]...");
-                            this.api.retrieveCall(id);
+                            this.api.voice().retrieveCall(id);
                         }
                         break;
 
@@ -615,7 +615,7 @@ public class WorkspaceConsole {
                             this.write("Usage: clear-call <id>");
                         } else {
                             this.write("Sending clear for call [" + id + "]...");
-                            this.api.clearCall(id);
+                            this.api.voice().clearCall(id);
                         }
                         break;
 
@@ -631,7 +631,7 @@ public class WorkspaceConsole {
                             } else {
                                 this.write("Sending redirect for call [" + id
                                         + "] and destination [" + destination + "]...");
-                                this.api.redirectCall(id, destination);
+                                this.api.voice().redirectCall(id, destination);
                             }
                         }
                         break;
@@ -649,7 +649,7 @@ public class WorkspaceConsole {
                             } else {
                                 this.write("Sending initiate-conference for call [" + id
                                         + "] and destination [" + destination + "]...");
-                                this.api.initiateConference(id, destination);
+                                this.api.voice().initiateConference(id, destination);
                             }
                         }
                         break;
@@ -663,7 +663,7 @@ public class WorkspaceConsole {
                             this.write("Sending complete-conference for call ["
                                     + params.getConnId() + "] and parentConnId ["
                                     + params.getParentConnId() + "]...");
-                            this.api.completeConference(params.getConnId(), params.getParentConnId());
+                            this.api.voice().completeConference(params.getConnId(), params.getParentConnId());
                         }
                         break;
 
@@ -680,7 +680,7 @@ public class WorkspaceConsole {
                             } else {
                                 this.write("Sending delete-from-conference for call [" + id
                                         + " and dnToDrop [" + dnToDrop + "]...");
-                                this.api.deleteFromConference(id, dnToDrop);
+                                this.api.voice().deleteFromConference(id, dnToDrop);
                             }
                         }
                         break;
@@ -699,7 +699,7 @@ public class WorkspaceConsole {
                             } else {
                                 this.write("Sending initiate-transfer for call [" + id
                                         + "] and destination [" + destination + "]...");
-                                this.api.initiateTransfer(id, destination);
+                                this.api.voice().initiateTransfer(id, destination);
                             }
                         }
                         break;
@@ -713,7 +713,7 @@ public class WorkspaceConsole {
                             this.write("Sending complete-transfer for call ["
                                     + params.getConnId() + "] and parentConnId ["
                                     + params.getParentConnId() + "]...");
-                            this.api.completeTransfer(params.getConnId(), params.getParentConnId());
+                            this.api.voice().completeTransfer(params.getConnId(), params.getParentConnId());
                         }
                         break;
 
@@ -731,7 +731,7 @@ public class WorkspaceConsole {
                             } else {
                                 this.write("Sending single-step-transfer for call [" + id
                                         + "] and destination [" + destination + "]...");
-                                this.api.singleStepTransfer(id, destination);
+                                this.api.voice().singleStepTransfer(id, destination);
                             }
                         }
                         break;
@@ -749,7 +749,7 @@ public class WorkspaceConsole {
                             } else {
                                 this.write("Sending single-step-conference for call [" + id
                                         + "] and destination [" + destination + "]...");
-                                this.api.singleStepConference(id, destination);
+                                this.api.voice().singleStepConference(id, destination);
                             }
                         }
                         break;
@@ -768,7 +768,7 @@ public class WorkspaceConsole {
 
                             KeyValueCollection userData = new KeyValueCollection();
                             userData.addString(key, value);
-                            this.api.attachUserData(id, userData);
+                            this.api.voice().attachUserData(id, userData);
                         }
                         break;
 
@@ -786,7 +786,7 @@ public class WorkspaceConsole {
 
                             KeyValueCollection userData = new KeyValueCollection();
                             userData.addString(key, value);
-                            this.api.updateUserData(id, userData);
+                            this.api.voice().updateUserData(id, userData);
                         }
                         break;
 
@@ -803,7 +803,7 @@ public class WorkspaceConsole {
                             } else {
                                 this.write("Sending delete-user-data-pair for call [" + id
                                         + " and key [" + key + "]...");
-                                this.api.deleteUserDataPair(id, key);
+                                this.api.voice().deleteUserDataPair(id, key);
                             }
                         }
                         break;
@@ -816,7 +816,7 @@ public class WorkspaceConsole {
                             this.write("Sending alternate for call ["
                                     + args.get(0) + "] and heldConnId ["
                                     + args.get(1) + "]...");
-                            this.api.alternateCalls(args.get(0), args.get(1));
+                            this.api.voice().alternateCalls(args.get(0), args.get(1));
                         }
                         break;
 
@@ -827,7 +827,7 @@ public class WorkspaceConsole {
                             this.write("Sending merge for call ["
                                     + args.get(0) + "] and otherConnId ["
                                     + args.get(1) + "]...");
-                            this.api.mergeCalls(args.get(0), args.get(1));
+                            this.api.voice().mergeCalls(args.get(0), args.get(1));
                         }
                         break;
 
@@ -838,7 +838,7 @@ public class WorkspaceConsole {
                             this.write("Sending reconnect for call ["
                                     + args.get(0) + "] and heldConnId ["
                                     + args.get(1) + "]...");
-                            this.api.reconnectCall(args.get(0), args.get(1));
+                            this.api.voice().reconnectCall(args.get(0), args.get(1));
                         }
                         break;
 
@@ -855,7 +855,7 @@ public class WorkspaceConsole {
                             } else {
                                 this.write("Sending send-dtmf for call [" + id
                                         + " and dtmfDigits [" + digits + "]...");
-                                this.api.sendDTMF(id, digits);
+                                this.api.voice().sendDTMF(id, digits);
                             }
                         }
                         break;
@@ -866,7 +866,7 @@ public class WorkspaceConsole {
                             this.write("Usage: start-recording <id>");
                         } else {
                             this.write("Sending start-recording for call [" + id + "]...");
-                            this.api.startRecording(id);
+                            this.api.voice().startRecording(id);
                         }
                         break;
 
@@ -876,7 +876,7 @@ public class WorkspaceConsole {
                             this.write("Usage: pause-recording <id>");
                         } else {
                             this.write("Sending pause-recording for call [" + id + "]...");
-                            this.api.pauseRecording(id);
+                            this.api.voice().pauseRecording(id);
                         }
                         break;
 
@@ -886,7 +886,7 @@ public class WorkspaceConsole {
                             this.write("Usage: resume-recording <id>");
                         } else {
                             this.write("Sending resume-recortding for call [" + id + "]...");
-                            this.api.resumeRecording(id);
+                            this.api.voice().resumeRecording(id);
                         }
                         break;
 
@@ -896,7 +896,7 @@ public class WorkspaceConsole {
                             this.write("Usage: stop-recording <id>");
                         } else {
                             this.write("Sending stop-recording for call [" + id + "]...");
-                            this.api.stopRecording(id);
+                            this.api.voice().stopRecording(id);
                         }
                         break;
 
@@ -914,7 +914,7 @@ public class WorkspaceConsole {
 
                             KeyValueCollection userData = new KeyValueCollection();
                             userData.addString(key, value);
-                            this.api.sendUserEvent(null, uuid);
+                            this.api.voice().sendUserEvent(null, uuid);
                         }
                         break;
 
