@@ -9,7 +9,7 @@ repositories {
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.11'
-    compile 'com.genesys:workspace:1.0.7'
+    compile 'com.genesys:workspace:1.0.8'
     compile 'com.genesys:authorization:1.0.3'
     compile 'args4j:args4j:2.33'
 }

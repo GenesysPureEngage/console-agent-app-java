@@ -14,6 +14,8 @@ import com.genesys.internal.common.ApiException;
 import com.genesys.internal.common.ApiResponse;
 import com.genesys.workspace.models.*;
 import com.genesys.workspace.models.cfg.*;
+import com.genesys.workspace.models.targets.Target;
+import com.genesys.workspace.models.targets.TargetSearchResult;
 import com.squareup.okhttp.OkHttpClient;
 import com.genesys.workspace.WorkspaceApi;
 import com.genesys.workspace.common.WorkspaceApiException;
@@ -388,7 +390,7 @@ public class WorkspaceConsole {
 
     private String getAgentGroupsSummary() {
         String summary = "Agent Groups:\n";
-/*
+
         Collection<AgentGroup> agentGroups = this.api.getAgentGroups();
         if (agentGroups != null && !agentGroups.isEmpty()) {
             for (AgentGroup group : agentGroups) {
@@ -396,7 +398,7 @@ public class WorkspaceConsole {
             }
         } else {
             summary += "<none>\n";
-        }*/
+        }
 
         return summary;
     }
@@ -918,6 +920,23 @@ public class WorkspaceConsole {
 
                     case "target-search":
                     case "ts":
+                        if (args.size() < 1) {
+                            this.write("Usage: target-search <search term>");
+                        } else {
+                            TargetSearchResult result = this.api.searchTargets(args.get(0));
+                            String resultMsg = "Search results:\n";
+                            if (result.getTargets() != null && !result.getTargets().isEmpty()) {
+                                for (Target target : result.getTargets()) {
+                                    resultMsg += "    name [" + target.getName() + "] type [" +
+                                            target.getType() + "] number [" + target.getNumber() + "]\n";
+                                }
+                                resultMsg += "Total matches: " + result.getTotalMatches();
+                            } else {
+                                resultMsg += "<none>\n";
+                            }
+
+                            this.write(resultMsg);
+                        }
                         break;
 
                     case "destroy":
@@ -935,6 +954,7 @@ public class WorkspaceConsole {
                                     "defaultPlace: " + this.user.getDefaultPlace() + "\n" +
                                     "userProperties: " + this.user.getUserProperties() + "\n");
                         }
+                        break;
 
                     case "console-config":
                         this.write("Configuration:\n"
