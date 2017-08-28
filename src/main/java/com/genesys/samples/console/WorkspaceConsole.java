@@ -923,12 +923,11 @@ public class WorkspaceConsole {
                         if (args.size() < 1) {
                             this.write("Usage: target-search <search term>");
                         } else {
-                            TargetSearchResult result = this.api.searchTargets(args.get(0));
+                            TargetSearchResult result = this.api.targets().search(args.get(0));
                             String resultMsg = "Search results:\n";
                             if (result.getTargets() != null && !result.getTargets().isEmpty()) {
                                 for (Target target : result.getTargets()) {
-                                    resultMsg += "    name [" + target.getName() + "] type [" +
-                                            target.getType() + "] number [" + target.getNumber() + "]\n";
+                                    resultMsg += "    " + target + "\n";
                                 }
                                 resultMsg += "Total matches: " + result.getTotalMatches();
                             } else {
