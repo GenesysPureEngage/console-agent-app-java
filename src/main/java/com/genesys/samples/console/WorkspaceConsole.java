@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import com.genesys.internal.authorization.api.AuthenticationApi;
+import com.genesys.internal.authorization.model.DefaultOAuth2AccessToken;
 import com.genesys.internal.common.ApiClient;
 import com.genesys.internal.common.ApiException;
 import com.genesys.internal.common.ApiResponse;
@@ -250,8 +251,8 @@ public class WorkspaceConsole {
         return params;
     }
 
-    private String getAuthCode() {
-        this.write("Getting auth code...");
+    private String getAuthToken() throws WorkspaceApiException {
+        this.write("Getting auth token...");
         String baseUrl = this.options.getAuthBaseUrl() != null ?
                 this.options.getAuthBaseUrl() : this.options.getBaseUrl();
         ApiClient authClient = new ApiClient();
@@ -261,43 +262,31 @@ public class WorkspaceConsole {
         httpClient.setFollowRedirects(false);
         httpClient.setFollowSslRedirects(false);
 
-        byte[] bytes = (this.options.getUsername() + ":" + this.options.getPassword()).getBytes();
+        byte[] bytes = (this.options.getClientId() + ":" + this.options.getClientSecret()).getBytes();
         byte[] encoded = Base64.getEncoder().encode(bytes);
         String authorization = "Basic " + new String(encoded);
 
         AuthenticationApi authApi = new AuthenticationApi(authClient);
-        String location = null;;
+
         try {
-            ApiResponse<Void> response = authApi.authorizeWithHttpInfo(
-                    "code", "http://localhost", this.options.getClientId(), authorization, "*");
+            DefaultOAuth2AccessToken response = authApi.retrieveToken(
+                    "password", authorization, "application/json", "*",
+                    this.options.getClientId(), this.options.getUsername(), this.options.getPassword());
+
+            return response.getAccessToken();
         } catch (ApiException e) {
-            List<String> header = e.getResponseHeaders().get("Location");
-            if (!header.isEmpty()) {
-                location = header.stream().findFirst().get();
-            }
+            throw new WorkspaceApiException("Failed to get auth token", e);
         }
-
-        if (location == null) {
-            return null;
-        }
-
-        this.write("Found location: " + location);
-
-        int idx = location.indexOf("code=");
-        String code = location.substring(idx + 5);
-
-        return code;
-
     }
 
     private void init() throws WorkspaceConsoleException, WorkspaceApiException, ExecutionException, InterruptedException {
 
-        String code = this.getAuthCode();
-        if (code == null) {
-            throw new WorkspaceConsoleException("Failed to get auth code.");
+        String token = this.getAuthToken();
+        if (token == null) {
+            throw new WorkspaceConsoleException("Failed to get auth token.");
         }
         this.write("Initializing API...");
-        CompletableFuture<User> future = this.api.initialize(code, "http://localhost");
+        CompletableFuture<User> future = this.api.initialize(token);
         this.user = future.get();
         this.write("Initialization complete.");
     }

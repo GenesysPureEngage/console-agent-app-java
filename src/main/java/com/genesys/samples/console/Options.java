@@ -28,6 +28,9 @@ public class Options {
     @Option(name="--clientId", required = true)
     private String clientId;
 
+    @Option(name="--clientSecret", required = true)
+    private String clientSecret;
+
     @Option(name="--debugEnabled")
     private boolean debugEnabled;
 
@@ -74,6 +77,10 @@ public class Options {
 
     public String getClientId() {
         return this.clientId;
+    }
+
+    public String getClientSecret() {
+        return this.clientSecret;
     }
 
     public String getUsername() {
