@@ -6,17 +6,18 @@ import java.util.concurrent.CompletableFuture;
 import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 
-import com.genesys.internal.authorization.api.AuthenticationApi;
-import com.genesys.internal.authorization.model.DefaultOAuth2AccessToken;
+import com.genesys.internal.authentication.api.AuthenticationApi;
+import com.genesys.internal.authentication.model.DefaultOAuth2AccessToken;
 import com.genesys.internal.common.ApiClient;
 import com.genesys.internal.common.ApiException;
-import com.genesys.internal.common.ApiResponse;
 import com.genesys.workspace.models.*;
 import com.genesys.workspace.models.cfg.*;
 import com.genesys.workspace.models.targets.Target;
-import com.genesys.workspace.models.targets.TargetSearchResult;
+import com.genesys.workspace.models.targets.SearchResult;
 import com.squareup.okhttp.OkHttpClient;
 import com.genesys.workspace.WorkspaceApi;
 import com.genesys.workspace.common.WorkspaceApiException;
@@ -30,8 +31,7 @@ public class WorkspaceConsole {
         this.options = options;
         this.api = new WorkspaceApi(
                 options.getApiKey(),
-                options.getBaseUrl(),
-                options.isDebugEnabled());
+                options.getBaseUrl());
 
         this.api.voice().addCallEventListener(msg -> {
             if (msg.getPreviousConnId() != null) {
@@ -271,7 +271,7 @@ public class WorkspaceConsole {
         try {
             DefaultOAuth2AccessToken response = authApi.retrieveToken(
                     "password", authorization, "application/json", "*",
-                    this.options.getClientId(), this.options.getUsername(), this.options.getPassword());
+                    this.options.getClientId(), null, this.options.getUsername(), this.options.getPassword());
 
             return response.getAccessToken();
         } catch (ApiException e) {
@@ -302,7 +302,7 @@ public class WorkspaceConsole {
         String dn = hasArgs ? args.get(1) : this.options.getDefaultDn();
 
         this.write("Sending activate-channels with agentId [" + agentId + "] and dn " + dn + "]...");
-        this.api.activateChannels(agentId, dn, null, null);
+        this.api.activateChannels(agentId, dn, null, null, null);
     }
 
     private void doAutoLogin() {
@@ -469,8 +469,7 @@ public class WorkspaceConsole {
 
                     case "debug":
                     case "d":
-                        this.api.setDebugEnabled(!this.api.debugEnabled());
-                        this.write("Debug enabled:" + this.api.debugEnabled());
+                        //CM: TODO - change slf4j?
                         break;
 
                     case "dn":
@@ -755,8 +754,8 @@ public class WorkspaceConsole {
                             this.write("Sending attach-user-data for call [" + id
                                     + "] and data [" + key + "=" + value + "]...");
 
-                            KeyValueCollection userData = new KeyValueCollection();
-                            userData.addString(key, value);
+                            Map<String, Object> userData = new HashMap<>();
+                            userData.put(key, value);
                             this.api.voice().attachUserData(id, userData);
                         }
                         break;
@@ -773,8 +772,8 @@ public class WorkspaceConsole {
                             this.write("Sending update-user-data for call [" + id
                                     + "] and data [" + key + "=" + value + "]...");
 
-                            KeyValueCollection userData = new KeyValueCollection();
-                            userData.addString(key, value);
+                            Map<String, Object> userData = new HashMap<>();
+                            userData.put(key, value);
                             this.api.voice().updateUserData(id, userData);
                         }
                         break;
@@ -901,8 +900,8 @@ public class WorkspaceConsole {
                             this.write("Sending send-user-event with data [" + key + "=" + value
                                     + "] and callUuid [" + uuid + "...");
 
-                            KeyValueCollection userData = new KeyValueCollection();
-                            userData.addString(key, value);
+                            Map<String, Object> userData = new HashMap<>();
+                            userData.put(key, value);
                             this.api.voice().sendUserEvent(null, uuid);
                         }
                         break;
@@ -912,13 +911,13 @@ public class WorkspaceConsole {
                         if (args.size() < 1) {
                             this.write("Usage: target-search <search term>");
                         } else {
-                            TargetSearchResult result = this.api.targets().search(args.get(0));
+                            SearchResult<Target> result = this.api.targets().search(args.get(0));
                             String resultMsg = "Search results:\n";
                             if (result.getTargets() != null && !result.getTargets().isEmpty()) {
                                 for (Target target : result.getTargets()) {
                                     resultMsg += "    " + target + "\n";
                                 }
-                                resultMsg += "Total matches: " + result.getTotalMatches();
+                                resultMsg += "Total matches: " + result.getTotal();
                             } else {
                                 resultMsg += "<none>\n";
                             }
