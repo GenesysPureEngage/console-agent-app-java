@@ -6,8 +6,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 
 import com.genesys.internal.authentication.api.AuthenticationApi;
@@ -754,8 +752,8 @@ public class WorkspaceConsole {
                             this.write("Sending attach-user-data for call [" + id
                                     + "] and data [" + key + "=" + value + "]...");
 
-                            Map<String, Object> userData = new HashMap<>();
-                            userData.put(key, value);
+                            KeyValueCollection userData = new KeyValueCollection();
+                            userData.addString(key, value);
                             this.api.voice().attachUserData(id, userData);
                         }
                         break;
@@ -772,8 +770,8 @@ public class WorkspaceConsole {
                             this.write("Sending update-user-data for call [" + id
                                     + "] and data [" + key + "=" + value + "]...");
 
-                            Map<String, Object> userData = new HashMap<>();
-                            userData.put(key, value);
+                            KeyValueCollection userData = new KeyValueCollection();
+                            userData.addString(key, value);
                             this.api.voice().updateUserData(id, userData);
                         }
                         break;
@@ -900,8 +898,8 @@ public class WorkspaceConsole {
                             this.write("Sending send-user-event with data [" + key + "=" + value
                                     + "] and callUuid [" + uuid + "...");
 
-                            Map<String, Object> userData = new HashMap<>();
-                            userData.put(key, value);
+                            KeyValueCollection userData = new KeyValueCollection();
+                            userData.addString(key, value);
                             this.api.voice().sendUserEvent(null, uuid);
                         }
                         break;
