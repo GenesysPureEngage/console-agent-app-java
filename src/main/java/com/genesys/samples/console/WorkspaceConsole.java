@@ -284,8 +284,7 @@ public class WorkspaceConsole {
             throw new WorkspaceConsoleException("Failed to get auth token.");
         }
         this.write("Initializing API...");
-        CompletableFuture<User> future = this.api.initialize(token);
-        this.user = future.get();
+        this.user = this.api.initialize(token);
         this.write("Initialization complete.");
     }
 
